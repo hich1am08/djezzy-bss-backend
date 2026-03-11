@@ -92,6 +92,7 @@ def _scan_report_dir(dir_name, prefix):
         print(f"  {key}: {len(DATA_STORE[key])} rows")
 
 def load_all_data():
+    """Load all data - non-blocking. Skips missing files gracefully."""
     DATA_STORE.clear()
     base = Config.BASE_DIR
     
@@ -107,23 +108,36 @@ def load_all_data():
     
     print("[DataLoader] === Loading Core Datasets ===")
     for key, path in core_files.items():
-        if os.path.exists(path):
-            DATA_STORE[key] = load_excel_file(path)
-            print(f"  {key}: {len(DATA_STORE[key])} rows")
-        else:
-            print(f"  MISSING: {path}")
+        try:
+            if os.path.exists(path):
+                DATA_STORE[key] = load_excel_file(path)
+                print(f"  ✓ {key}: {len(DATA_STORE[key])} rows")
+            else:
+                print(f"  ⊘ MISSING: {key} ({os.path.basename(path)})")
+                DATA_STORE[key] = pd.DataFrame()
+        except Exception as e:
+            print(f"  ✗ ERROR loading {key}: {str(e)[:100]}")
             DATA_STORE[key] = pd.DataFrame()
     
     # Extended report datasets (the 39 files)
     print("[DataLoader] === Loading Extended Reports ===")
-    _scan_report_dir("Report_2G", "2G")
-    _scan_report_dir("Report_3G", "3G")
-    _scan_report_dir("Report_4G", "4G")
-    _scan_report_dir("Report_5G", "5G")
+    try:
+        _scan_report_dir("Report_2G", "2G")
+        _scan_report_dir("Report_3G", "3G")
+        _scan_report_dir("Report_4G", "4G")
+        _scan_report_dir("Report_5G", "5G")
+    except Exception as e:
+        print(f"  ✗ ERROR scanning report dirs: {str(e)[:100]}")
     
-    print(f"[DataLoader] Total datasets loaded: {len(DATA_STORE)}")
-    _build_site_index()
-    print("[DataLoader] === All data loaded successfully ===")
+    if len(DATA_STORE) > 0:
+        try:
+            _build_site_index()
+        except Exception as e:
+            print(f"  ✗ ERROR building site index: {str(e)[:100]}")
+    
+    print(f"[DataLoader] Total datasets loaded: {len([k for k,v in DATA_STORE.items() if not v.empty])}")
+    print("[DataLoader] === Data loading complete ===")
+
 
 def get_dataframe(key):
     return DATA_STORE.get(key, pd.DataFrame())
