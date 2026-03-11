@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: djezzy-bss-api
+    runtime: docker
+    plan: free
+    region: oregon
+    port: 5000
+    healthCheckPath: /api/auth/session
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: SECRET_KEY
+        value: your-secret-key-change-this-on-render
