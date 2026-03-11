@@ -27,10 +27,15 @@ def create_app():
     def index():
         return app.send_static_file("index.html")
 
-    # Load data on startup
+    # Load data on startup (with error handling)
     with app.app_context():
-        from app.services.data_loader import load_all_data
-        load_all_data()
+        try:
+            from app.services.data_loader import load_all_data
+            load_all_data()
+        except Exception as e:
+            print(f"Warning: Could not load data on startup: {e}")
+            # Don't fail startup if data files missing
+            pass
 
     return app
 
